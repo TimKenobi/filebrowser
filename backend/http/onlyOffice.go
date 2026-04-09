@@ -202,6 +202,14 @@ func onlyofficeClientConfigGetHandler(w http.ResponseWriter, r *http.Request, d 
 	// Build callback URL for OnlyOffice to notify us of changes
 	callbackURL := buildOnlyOfficeCallbackURL(r, source, providedPath, d.fileInfo.Hash, d.token)
 
+	// Determine download/print permissions - disable in shares with DisableDownload
+	allowDownload := true
+	allowPrint := true
+	if d.share != nil && d.share.DisableDownload {
+		allowDownload = false
+		allowPrint = false
+	}
+
 	// Build OnlyOffice client configuration
 	clientConfig := map[string]interface{}{
 		"document": map[string]interface{}{
@@ -211,8 +219,8 @@ func onlyofficeClientConfigGetHandler(w http.ResponseWriter, r *http.Request, d 
 			"url":      downloadURL,
 			"permissions": map[string]interface{}{
 				"edit":     utils.Ternary(settings.Config.Integrations.OnlyOffice.ViewOnly, "view", canEditMode),
-				"download": true,
-				"print":    true,
+				"download": allowDownload,
+				"print":    allowPrint,
 			},
 		},
 		"editorConfig": map[string]interface{}{
