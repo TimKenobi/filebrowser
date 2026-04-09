@@ -42,41 +42,59 @@ func publicDownloadHandler(w http.ResponseWriter, r *http.Request, d *requestCon
 		return http.StatusNotImplemented, fmt.Errorf("downloads are disabled for upload shares")
 	}
 
+	isInlineView := r.URL.Query().Get("inline") == "true"
+
 	// Check DisableDownload permission for normal shares
+	// When downloads are disabled, still allow inline viewing (Content-Disposition: inline)
 	if d.share.DisableDownload {
-		return http.StatusForbidden, fmt.Errorf("downloads are not allowed for this share")
-	}
-
-	// Check global download limit (if not using per-user limits)
-	if !d.share.PerUserDownloadLimit && d.share.DownloadsLimit > 0 && d.share.Downloads >= d.share.DownloadsLimit {
-		return http.StatusForbidden, fmt.Errorf("share downloads limit reached")
-	}
-
-	// Check per-user download limit
-	if d.share.PerUserDownloadLimit {
-		// Block anonymous users
-		if d.user.Username == "anonymous" {
-			return http.StatusForbidden, fmt.Errorf("anonymous downloads are not allowed with per-user limits")
+		if !isInlineView {
+			return http.StatusForbidden, fmt.Errorf("downloads are not allowed for this share")
 		}
-		// Check if user has reached their limit
-		if d.share.HasReachedUserLimit(d.user.Username) {
-			return http.StatusForbidden, fmt.Errorf("user download limit reached for this share")
-		}
+		// Force inline disposition for view-only mode by ensuring the param stays set
+		// This prevents users from circumventing by manipulating response headers
+		w.Header().Set("Content-Disposition", "inline")
 	}
 
-	d.share.Mu.Lock()
-	d.share.Downloads++
-	d.share.Mu.Unlock()
+	// Skip download counting for inline views when downloads are disabled (view-only mode)
+	viewOnlyMode := d.share.DisableDownload && isInlineView
 
-	// Track per-user download if enabled
-	if d.share.PerUserDownloadLimit {
-		d.share.IncrementUserDownload(d.user.Username)
+	if !viewOnlyMode {
+		// Check global download limit (if not using per-user limits)
+		if !d.share.PerUserDownloadLimit && d.share.DownloadsLimit > 0 && d.share.Downloads >= d.share.DownloadsLimit {
+			return http.StatusForbidden, fmt.Errorf("share downloads limit reached")
+		}
+
+		// Check per-user download limit
+		if d.share.PerUserDownloadLimit {
+			// Block anonymous users
+			if d.user.Username == "anonymous" {
+				return http.StatusForbidden, fmt.Errorf("anonymous downloads are not allowed with per-user limits")
+			}
+			// Check if user has reached their limit
+			if d.share.HasReachedUserLimit(d.user.Username) {
+				return http.StatusForbidden, fmt.Errorf("user download limit reached for this share")
+			}
+		}
+
+		d.share.Mu.Lock()
+		d.share.Downloads++
+		d.share.Mu.Unlock()
+
+		// Track per-user download if enabled
+		if d.share.PerUserDownloadLimit {
+			d.share.IncrementUserDownload(d.user.Username)
+		}
 	}
 
 	// Get all "file" parameter values (supports repeated params)
 	files := r.URL.Query()["file"]
 	if len(files) == 0 {
 		files = []string{"/"}
+	}
+
+	// In view-only mode, only allow single file inline viewing (not multi-file archives or directory downloads)
+	if viewOnlyMode && (len(files) > 1 || (len(files) == 1 && files[0] == "/")) {
+		return http.StatusForbidden, fmt.Errorf("downloads are not allowed for this share")
 	}
 
 	// Get the actual source name from the share's source mapping

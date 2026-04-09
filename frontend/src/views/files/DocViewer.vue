@@ -158,7 +158,7 @@ export default defineComponent({
               path: state.shareInfo.subPath,
               hash: state.shareInfo.hash,
               token: state.shareInfo.token,
-            }, [state.req.path])
+            }, [state.req.path], true)
           : resourcesApi.getDownloadURL(
               state.req.source,
               state.req.path,
