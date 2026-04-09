@@ -339,7 +339,7 @@
     "selectFaviconImage": "Select favicon image",
     "selectImage": "Select image",
     "disableDownload": "Disable downloading files",
-    "disableDownloadDescription": "Anyone won't be able to download files or view a file's content.",
+    "disableDownloadDescription": "Users can still view and preview files in the browser, but cannot download them locally.",
     "allowModify": "Allow editing files",
     "allowModifyDescription": "Anyone can edit files in this share.",
     "allowDelete": "Allow deleting files",
