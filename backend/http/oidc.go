@@ -43,10 +43,11 @@ func (u *userInfoUnmarshaller) UnmarshalJSON(data []byte) error {
 	}
 
 	// Extract groups if configured
+	logger.Infof("[OIDC DEBUG] groupsClaim config value: '%s'", u.groupsClaim)
 	if u.groupsClaim != "" {
-		logger.Debugf("Looking for groups claim '%s' in token claims", u.groupsClaim)
+		logger.Infof("[OIDC DEBUG] Looking for groups claim '%s' in token claims", u.groupsClaim)
 		if v, ok := raw[u.groupsClaim]; ok {
-			logger.Debugf("Found groups claim value: %v (type: %T)", v, v)
+			logger.Infof("[OIDC DEBUG] Found groups claim value: %v (type: %T)", v, v)
 			switch val := v.(type) {
 			case map[string]interface{}:
 				u.userInfo.Groups = slices.Collect(maps.Keys(val))
@@ -67,10 +68,12 @@ func (u *userInfoUnmarshaller) UnmarshalJSON(data []byte) error {
 					u.userInfo.Groups = parts
 				}
 			}
-			logger.Debugf("Extracted groups: %v", u.userInfo.Groups)
+			logger.Infof("[OIDC DEBUG] Extracted groups: %v", u.userInfo.Groups)
 		} else {
-			logger.Debugf("Groups claim '%s' not found in token. Available claims: %v", u.groupsClaim, maps.Keys(raw))
+			logger.Infof("[OIDC DEBUG] Groups claim '%s' not found in token. Available claims: %v", u.groupsClaim, maps.Keys(raw))
 		}
+	} else {
+		logger.Infof("[OIDC DEBUG] groupsClaim is EMPTY - groups will not be extracted!")
 	}
 
 	u.userInfo.Claims = raw
