@@ -291,7 +291,9 @@ func buildOnlyOfficeDownloadURL(r *http.Request, source, path, hash, token strin
 	downloadURL := fmt.Sprintf("%s/api/resources/download?file=%s&auth=%s&source=%s",
 		strings.TrimSuffix(baseURL, "/"), escapedPath, token, url.QueryEscape(source))
 	if hash != "" {
-		downloadURL = fmt.Sprintf("%s/public/api/resources/download?file=%s&auth=%s&hash=%s",
+		// For shares, add inline=true so OnlyOffice can fetch the file even when downloads are disabled
+		// The backend allows inline viewing while still blocking direct downloads
+		downloadURL = fmt.Sprintf("%s/public/api/resources/download?file=%s&auth=%s&hash=%s&inline=true",
 			strings.TrimSuffix(baseURL, "/"), escapedPath, token, hash)
 	}
 	return downloadURL

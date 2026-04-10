@@ -13,7 +13,7 @@
 <script>
 import { DocumentEditor } from "@onlyoffice/document-editor-vue";
 import { globalVars } from "@/utils/constants";
-import { state, mutations } from "@/store";
+import { state, mutations, getters } from "@/store";
 import { removeLastDir } from "@/utils/url";
 import { officeApi } from "@/api";
 import { toStandardLocale } from "@/i18n";
@@ -56,7 +56,12 @@ export default {
 
     // Perform the setup and fetch config from backend
     try {
-      const configData = await officeApi.getConfig(state.req);
+      // For public shares, pass the hash so the backend knows about share restrictions
+      const configReq = {
+        ...state.req,
+        ...(getters.isShare() && { hash: state.shareInfo.hash })
+      };
+      const configData = await officeApi.getConfig(configReq);
       configData.type = state.isMobile ? "mobile" : "desktop";
       this.clientConfig = configData;
       console.log("OnlyOffice client config received:", this.clientConfig);
