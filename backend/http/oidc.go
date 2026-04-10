@@ -44,7 +44,9 @@ func (u *userInfoUnmarshaller) UnmarshalJSON(data []byte) error {
 
 	// Extract groups if configured
 	if u.groupsClaim != "" {
+		logger.Debugf("Looking for groups claim '%s' in token claims", u.groupsClaim)
 		if v, ok := raw[u.groupsClaim]; ok {
+			logger.Debugf("Found groups claim value: %v (type: %T)", v, v)
 			switch val := v.(type) {
 			case map[string]interface{}:
 				u.userInfo.Groups = slices.Collect(maps.Keys(val))
@@ -65,6 +67,9 @@ func (u *userInfoUnmarshaller) UnmarshalJSON(data []byte) error {
 					u.userInfo.Groups = parts
 				}
 			}
+			logger.Debugf("Extracted groups: %v", u.userInfo.Groups)
+		} else {
+			logger.Debugf("Groups claim '%s' not found in token. Available claims: %v", u.groupsClaim, maps.Keys(raw))
 		}
 	}
 
