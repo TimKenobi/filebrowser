@@ -50,9 +50,8 @@ func publicDownloadHandler(w http.ResponseWriter, r *http.Request, d *requestCon
 		if !isInlineView {
 			return http.StatusForbidden, fmt.Errorf("downloads are not allowed for this share")
 		}
-		// Force inline disposition for view-only mode by ensuring the param stays set
-		// This prevents users from circumventing by manipulating response headers
-		w.Header().Set("Content-Disposition", "inline")
+		// Note: Content-Disposition: inline is enforced by setContentDisposition
+		// in rawFilesHandler when the inline query parameter is present.
 	}
 
 	// Skip download counting for inline views when downloads are disabled (view-only mode)

@@ -295,6 +295,12 @@ func rawFilesHandler(w http.ResponseWriter, r *http.Request, d *requestContext, 
 	}
 
 	// ** Archive (ZIP/TAR.GZ) handling ** — delegate to archive package
+	// Block archive/directory downloads for shares with downloads disabled.
+	// Even with ?inline=true, directory or multi-file archive downloads are not allowed
+	// in view-only mode — only single file inline viewing is permitted.
+	if d.share != nil && d.share.DisableDownload {
+		return http.StatusForbidden, fmt.Errorf("downloads are not allowed for this share")
+	}
 	return BuildAndStreamArchive(w, r, d, source, fileList)
 }
 
