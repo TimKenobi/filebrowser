@@ -1,5 +1,6 @@
 FROM ghcr.io/gtsteffaniak/playwright-base:latest
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 # Copy setup scripts first to leverage caching
 COPY [ "./_docker/src/sharing/", "./" ]
@@ -15,4 +16,19 @@ COPY [ "./backend/http/embed/", "./http/dist/"]
 
 # Run tests
 ENV FILEBROWSER_PLAYWRIGHT_TEST=true
-RUN ./filebrowser & sleep 2 && cd ../frontend && npx playwright test
+RUN ./filebrowser & \
+  ready=0; \
+  for i in $(seq 1 30); do \
+    if curl -fsS http://127.0.0.1/health > /dev/null; then \
+      echo "filebrowser is ready"; \
+      ready=1; \
+      break; \
+    fi; \
+    echo "waiting for filebrowser readiness... (${i}/30)"; \
+    sleep 1; \
+  done; \
+  if [ "$ready" -ne 1 ]; then \
+    echo "filebrowser readiness check failed: http://127.0.0.1/health did not respond within 30 seconds" >&2; \
+    exit 1; \
+  fi; \
+  cd ../frontend && npx playwright test
